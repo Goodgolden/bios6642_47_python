@@ -1,0 +1,465 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+  10pt,
+  ignorenonframetext,
+]{beamer}
+\usepackage{pgfpages}
+\setbeamertemplate{caption}[numbered]
+\setbeamertemplate{caption label separator}{: }
+\setbeamercolor{caption name}{fg=normal text.fg}
+\beamertemplatenavigationsymbolsempty
+% Prevent slide breaks in the middle of a paragraph
+\widowpenalties 1 10000
+\raggedbottom
+\setbeamertemplate{part page}{
+  \centering
+  \begin{beamercolorbox}[sep=16pt,center]{part title}
+    \usebeamerfont{part title}\insertpart\par
+  \end{beamercolorbox}
+}
+\setbeamertemplate{section page}{
+  \centering
+  \begin{beamercolorbox}[sep=12pt,center]{part title}
+    \usebeamerfont{section title}\insertsection\par
+  \end{beamercolorbox}
+}
+\setbeamertemplate{subsection page}{
+  \centering
+  \begin{beamercolorbox}[sep=8pt,center]{part title}
+    \usebeamerfont{subsection title}\insertsubsection\par
+  \end{beamercolorbox}
+}
+\AtBeginPart{
+  \frame{\partpage}
+}
+\AtBeginSection{
+  \ifbibliography
+  \else
+    \frame{\sectionpage}
+  \fi
+}
+\AtBeginSubsection{
+  \frame{\subsectionpage}
+}
+\usepackage{amsmath,amssymb}
+\usepackage{lmodern}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usetheme[]{CambridgeUS}
+\usecolortheme{dolphin}
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\newif\ifbibliography
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\AtBeginSubsection{}
+\AtBeginSection{}
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same} % disable monospaced font for URLs
+\hypersetup{
+  pdftitle={Learning Sample-Specific Models with Low-Rank Personalized Regression},
+  pdfauthor={Benjamin Lengerich, Bryon Aragam, Eric P. Xing},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{Learning Sample-Specific Models with Low-Rank Personalized
+Regression}
+\subtitle{Personalized regression enables sample-specific pan-cancer
+analysis}
+\author{Benjamin Lengerich, Bryon Aragam, Eric P. Xing}
+\date{}
+\institute{Carnegie Mellon University, University of Chicago}
+
+\begin{document}
+\frame{\titlepage}
+
+\hypertarget{personalized-regression-with-regularization}{%
+\section{Personalized Regression with
+Regularization}\label{personalized-regression-with-regularization}}
+
+\begin{frame}{Motivation}
+\protect\hypertarget{motivation}{}
+Adapting to heterogeneity in complex data to infer
+\textbf{individual-level effects}
+
+No need for the model be complex: simple linear and logistic regression
+models will suffice
+
+\begin{block}{A tradeoff between effect complexity and effect
+personalization}
+\protect\hypertarget{a-tradeoff-between-effect-complexity-and-effect-personalization}{}
+\centering
+
+Universal effect \(\leftrightarrow\) Personalized effect
+
+\centering
+
+Complex model \(\leftrightarrow\) Simple model
+
+\begin{center}\includegraphics[width=1\linewidth]{presentation1} \end{center}
+\end{block}
+\end{frame}
+
+\begin{frame}{Traditional model v.s. Personalized model}
+\protect\hypertarget{traditional-model-v.s.-personalized-model}{}
+\[
+\begin{split}
+\text {n samples:} & \ (X^{(i)}, Y^{(i)})\\
+\text {Predictors:} & \ X^{(i)} \in \mathbb R^p\\
+\text {Response:} & \ Y^{(i)} \\
+\text {Traditional model:} & \ Y^{(i)} = f(X^{(i)}; \theta)\\
+\text {Personalized model:} & \ Y^{(i)} = f(X^{(i)}; \theta^{(i)})
+\end{split}
+\]
+
+\begin{itemize}
+\tightlist
+\item
+  Multiple simple models for each individual are estimated jointly with
+  a single objective function
+\item
+  Without additional constraints, this model is overparametrized
+\item
+  Definitely over-fitted, but still fixable
+\end{itemize}
+\end{frame}
+
+\hypertarget{learning-sample-specific-models}{%
+\section{Learning sample-specific
+models}\label{learning-sample-specific-models}}
+
+\begin{frame}{Learning sample-specific models}
+\[
+Y^{(i)} = f(X^{(i)}, \theta^{(i)}) + w^{(i)} \ \ \ \ \ \ (1)
+\]
+
+The key is to choose a solution \(\theta^{(i)}\) that simultaneously
+leads to good generalization and accurate inferences about the \(i\)-th
+sample.
+
+\begin{itemize}
+\tightlist
+\item
+  a low-rank latent representation of \(\theta^{(i)}\)
+\item
+  a novel regularization scheme.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Low-rank representation}
+\protect\hypertarget{low-rank-representation}{}
+Ideas of dictionary learning: good-behaved personalized modeling has a
+sparse representation
+
+\[
+\begin{aligned}
+\text {Low rank:} & \ \Omega = [\theta^{(1)} | ... | \theta^{(n)}] \in \mathbb R^{p \times n}\\
+ & i.e.  \ \theta^{(i)}  = Q^T Z^{(i)}\\
+\text {Loadings:}  & \ Z^{(i)} \in \mathbb R^q;   Z \in \mathbb R^{q \times n}\\
+\text {Dictionary:}  & \  Q \in \mathbb R^{q\times p}\\
+\text {Low rank:} & \ \Omega = Q^T Z\\
+\end{aligned}
+\]
+
+\begin{block}{Special form of sparse dictionary learning aka sparse
+coding}
+\protect\hypertarget{special-form-of-sparse-dictionary-learning-aka-sparse-coding}{}
+\begin{itemize}
+\tightlist
+\item
+  Sparse coding is a representation learning method which aims at
+  finding a sparse representation of the input data
+\item
+  In the form of a linear combination of basic elements as well as those
+  basic elements themselves
+\item
+  These elements are called atoms and they compose a dictionary.
+\end{itemize}
+\end{block}
+\end{frame}
+
+\begin{frame}{}
+\protect\hypertarget{section}{}
+The choice of \(q\) is determined by the user's desired latent
+dimensionality;
+
+for \(q \ll p\), using only \(\Theta (q(n+p))\) instead of
+\(\Theta(np)\) of a full-rank solution can improve computational and
+statistical efficiency.
+
+With \(\theta^{(i)} = Q^T Z^{(i)}\), lower rank formulation enables to
+use \(L_2\) distance in \(Z\) to restrict Euclidean distances between
+the \(\theta^{(i)}\)
+
+\[
+\|\theta^{(i)} - \theta^{(j)} \| \leq \sqrt p \|Z^{(i)} - Z^{(j)}\| \ \ \ \ \ \ (2)
+\]
+
+\begin{itemize}
+\item
+  Sparsity in \(\theta\) can be realized by sparsity in \(Z\), \(Q\)
+\item
+  The low-rank formulation constrains the number of personalized
+  sparsity patterns, by changing the latent dimensionality \(q\).
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Distance-matching}
+\protect\hypertarget{distance-matching}{}
+Regularize the parameters \(\theta^{(i)}\) by requiring that similarity
+in \(\theta\) corresponds to similarity in \(U\),
+
+\begin{itemize}
+\item
+  i.e.~\(\| \theta^{(i)} - \theta ^{(j)} \| \approx \rho (U^{(i)}, U^{(i)})\)
+\item
+  The \(U(i)\) represent exogenous variables that we do not wish to
+  directly model.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Distance-matching regularization (DMR)}
+\protect\hypertarget{distance-matching-regularization-dmr}{}
+Adapt a distance-matching regularization (DMR) scheme to penalize the
+squared difference in implied distances.
+
+The covariate distances are modeled as a weighted sum.
+
+\[
+\rho_{\phi} (u, v) = \sum^k_{l = 1} \phi_l d_l(u_l, v_l), \ \phi_l\geq 0  \ \ \ \ \ \ (3)
+\]
+
+\tiny
+
+Each \(d_l (l = 1, ... , k)\) is a metric for a covariate;
+
+\(\phi\) is a positive (non-negative) vector represents a linear
+transformation into latent distance function;
+\end{frame}
+
+\begin{frame}{Distance Matching Regularized Loss}
+\protect\hypertarget{distance-matching-regularized-loss}{}
+Main idea: Distance between sample parameters should be similar to
+distance between sample covariates, as well as the distance between
+latent variable \(U\)
+
+In order for
+\(\|\theta^{(i)} - \theta^{(j)}\| \approx \rho_{\phi}(U^{(i)}, U^{(j)})\),
+it is suffices to require
+\(\|Z^{(i)} - Z^{(j)}\| \approx \rho_{\phi}(U^{(i)}, U^{(j)})\)
+
+Then we can define the \textbf{distance-matching regularizer}:
+
+\[
+D^{(i)}_{\gamma} (d_{\beta}, d_U) = \frac {\gamma} {2} \sum_{j \in B_r(i)} \bigg( \rho_\phi (U^{(i)}, U^{(j)}) - \|Z^{(i)}, Z^{(j)}\|_2\bigg)^2 \ \ \ \ \ \ \ \ (4)
+\]
+
+\tiny
+
+\(B_r(i) = \{j : \|Z^{(i)} - Z^{(j)}\|^2 < r\}\)
+
+The hyperparameter \(\gamma\) trades off sensitivity to prediction of
+the response variable against sensitivity to covariate structure
+
+For example for simple linear relationship both under \(L_2\) norm
+
+\[
+D^{(i)}_{\gamma} (d_{\beta}, d_U) = \frac {\gamma} {2} \sum_{j \neq i} \bigg( d_\theta (\theta^{(i)}, \theta^{(j)}) - d_Z(Z^{(i)}, Z^{(j)})\bigg)^2 = \frac {\gamma} {2} \sum_{j \neq i} \bigg( \|\theta^{(i)}, \theta^{(j)}\|_2^2 - \|Z^{(i)}, Z^{(j)}\|_2^2 \bigg)^2
+\]
+\end{frame}
+
+\begin{frame}{Personalized Regression}
+\protect\hypertarget{personalized-regression}{}
+Seeking a model for inference, not necessarily for accurate predictive
+models
+
+Seeking relatively simple personalized effects not universal effects
+
+covariate data as informative of each sample
+
+Here is the \(\ell (x, y, \theta)\) is the loss function we want to
+minimize
+
+\[
+\mathcal L^{(i)} (Z, Q, \phi) =  \ell \big(X^{(i)}, Y^{(i)}, Q^TZ^{(i)}\big) + \psi_\lambda(Q^TZ^{(i)}) + D_\gamma^{(i)}(Z, \phi) \ \ \ \  (5)
+\]
+
+\tiny
+
+\begin{itemize}
+\item
+  where \(\psi_\lambda\) is a regularization such as \(L_1\) penalty
+\item
+  \(D_\gamma^{(i)}\) is the distance-matching regularization defined in
+  \(Eq.(4)\)
+\end{itemize}
+\end{frame}
+
+\begin{frame}{}
+\protect\hypertarget{section-1}{}
+Where we learn \(\Omega\) and \(\phi\) by minimizing the following
+objective:
+
+\[
+\pmb {\mathcal L} (Z, Q, \phi) = \sum^n_{i=1} \mathcal L^{(i)}(Z, Q, \phi) + v \|\phi - 1\|^2_2 \ \ \ \ \ \ \ \ (6)
+\]
+
+\tiny
+
+\begin{itemize}
+\item
+  where \(v \|\phi - 1\|^2_2\) regularize the distance function
+  \(\rho_\phi\) with strength set \(v\)
+\item
+  again, \(\Omega = Q^TZ\)
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Algorithm}
+\protect\hypertarget{algorithm}{}
+\begin{itemize}
+\item The objective function is optimized with sub-gradient descent.
+\item Initialize $\Sigma$ by setting $\theta^{(i)}$~$N(\hat\theta, \varepsilon I)$ for population model such as lasso and elastic net.
+\item Initialize $Z$ and $Q$ by PCA factorization.
+\item Each personalized estimator is endowed with a personalized learning rate $\alpha_t^{(i)} = \alpha_t / ||\hat \theta_t^{(i)} - \hat \theta^{(pop)}||_{\infty}$.
+\item  This learning rate scales the global learning rate $\alpha_t$ according to how far the estimator has traveled.
+\item This scheme ensures that the personalized coefficients' center of mass stays close to the initial $\hat \theta^{(pop)}$ despite unconstrained $\theta^{(i)}$.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Algorithm}
+\protect\hypertarget{algorithm-1}{}
+\begin{center}\includegraphics[width=1\linewidth]{presentation6} \end{center}
+\end{frame}
+
+\begin{frame}{Prediction}
+\protect\hypertarget{prediction}{}
+\begin{itemize}
+\item
+  Given a test point \((X, U)\), averaging the model parameters of the
+  \(k_n\) nearest training points based on distance \(\rho_\phi\)
+\item
+  Increasing \(k_n\) drives the test models toward the population model
+  to control overfitting
+\item
+  Intentionally avoided using \(X\) to select \(\theta\) so that
+  interpretation of \(\theta\) is not confounded by \(X\)
+\end{itemize}
+
+\[
+\theta = \frac 1 {k_n} \sum^{k_n}_{j=1} \theta^{(\eta(\rho_\phi, U))[j]}; \ \eta(\rho_\phi, U) = {{argsort} _{a\leq i \leq n}} \rho_\phi (U, U^{(i)}) \ \ \ \ \ \ \ \ (7.a)
+\]
+\end{frame}
+
+\begin{frame}{Results}
+\protect\hypertarget{results}{}
+\begin{itemize}
+\item Performance of personalized regression will be tested through simulation study.
+\item Fix $X \in \mathbb{R}^{N \times P}$, generate sample-specific $\beta^{(i)}$ ~ Unif (0,1), and $Y^{(i))} \in (0,1)$.
+\item Covariates $U^{(i)}$ are generated by projecting $\beta^{(j)}$ into $K < P$ dimension with mult-dimensional scaling.
+\item covariates that are related to the personalized regression coefficients in a highly nonlinear, nonparametric manner.
+\item Set $K = 10, K = 3$.
+\end{itemize}
+
+\begin{center}\includegraphics[width=0.5\linewidth]{presentation11} \end{center}
+\end{frame}
+
+\begin{frame}{Simulation}
+\protect\hypertarget{simulation}{}
+\begin{center}\includegraphics[width=0.7\linewidth]{presentation10} \end{center}
+\end{frame}
+
+\begin{frame}{Sample-specific pan-cancer analysis}
+\protect\hypertarget{sample-specific-pan-cancer-analysis}{}
+They also use gene expression (RNA-Seq) quantification data from The
+Cancer Genome Atlas (TCGA).
+
+\begin{itemize}
+\item
+  This dataset compiles data from 37 projects spanning 36 disease types
+  in 28 primary sites.
+\item
+  After pruning for missing values, this dataset contains 9663 profiles
+  for 8944 case and 719 matched control samples
+\item
+  This resulting in \(P = 4123\) features when an intercept term is
+  added.
+\item
+  They divide this set into 75\% training data and 25\% testing.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{PR has good variable selections}
+\protect\hypertarget{pr-has-good-variable-selections}{}
+\begin{center}\includegraphics[width=0.6\linewidth]{presentation9} \end{center}
+\end{frame}
+
+\begin{frame}{PR has good variable selections}
+\protect\hypertarget{pr-has-good-variable-selections-1}{}
+\begin{center}\includegraphics[width=0.4\linewidth]{presentation12} \end{center}
+\end{frame}
+
+\begin{frame}{Here is the result of RNA-seq data}
+\protect\hypertarget{here-is-the-result-of-rna-seq-data}{}
+\begin{center}\includegraphics[width=0.6\linewidth]{presentation8} \end{center}
+\end{frame}
+
+\begin{frame}{Cancer is a highly personalized problem}
+\protect\hypertarget{cancer-is-a-highly-personalized-problem}{}
+\begin{center}\includegraphics[width=0.7\linewidth]{presentation3} \end{center}
+\end{frame}
+
+\begin{frame}{The clusters have biological and clinical meanings}
+\protect\hypertarget{the-clusters-have-biological-and-clinical-meanings}{}
+\begin{center}\includegraphics[width=0.45\linewidth]{presentation5} \end{center}
+\end{frame}
+
+\begin{frame}{Discussion}
+\protect\hypertarget{discussion}{}
+\begin{itemize}
+\tightlist
+\item
+  The Generalization Problem? Sensitive to outliers?
+\item
+  Is it really interpreting as its claimed to be? Confounding and
+  Collinearity?
+\item
+  Tuning the parameters \(\lambda, \gamma. v, c, \alpha\)?
+\item
+  Why PCA? How Kernel PCA? ?
+\end{itemize}
+\end{frame}
+
+\end{document}

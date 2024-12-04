@@ -1,0 +1,354 @@
+---
+title: "Learning Sample-Specific Models with Low-Rank Personalized Regression"
+subtitle: "Personalized regression enables sample-specific pan-cancer analysis"
+author: "Benjamin Lengerich, Bryon Aragam, Eric P. Xing"
+institute: Carnegie Mellon University, University of Chicago
+output:
+  beamer_presentation:
+    theme: CambridgeUS
+    # colortheme: dolphin 
+    slide_level: 2
+    toc: false
+    keep_tex: true
+    # latex_engine: pdflatex
+    # dev: cairo_pdf
+fontsize: 10pt
+make149: yes
+header-includes:
+- \AtBeginSubsection{}
+- \AtBeginSection{}
+---
+
+```{r setup, include=FALSE, cache=F, message=F, warning=F, results="hide"}
+knitr::opts_chunk$set(cache = TRUE, echo = FALSE, message = FALSE, warning = FALSE)
+knitr::opts_chunk$set(fig.height = 4, fig.width = 5, out.width = '30%', fig.align='center')
+```
+
+# Personalized Regression with Regularization
+
+## Motivation
+
+Adapting to heterogeneity in complex data to infer **individual-level effects**
+
+
+No need for the model be complex: simple linear and logistic regression models will suffice
+
+
+### A tradeoff between effect complexity and effect personalization
+
+\centering
+Universal effect $\leftrightarrow$ Personalized effect
+
+
+\centering
+Complex model $\leftrightarrow$ Simple model  
+
+```{r echo=FALSE, out.width='100%', fig.align='center'}
+knitr::include_graphics(c("presentation1.png"))
+```
+
+<!-- ## Other model fails on individual-level estimation -->
+<!-- - Standard approaches: -->
+<!--   - random effects models -->
+<!--   - mixture models -->
+<!--   - varying coefficients -->
+<!--   - hierarchical models -->
+
+<!-- - Recent works: -->
+<!--   - the network lasso $^{[11]}$ -->
+<!--   - the pliable lasso $^{[32]}$ -->
+<!--   - personalized multi-task learning $^{[37]}$ -->
+<!--   - the localized lasso $^{[38]}$ -->
+
+<!-- ```{r echo=FALSE, out.width='100%', fig.align='center'} -->
+<!-- knitr::include_graphics(c('presentation1.png')) -->
+<!-- ``` -->
+
+
+## Traditional model v.s. Personalized model
+
+$$
+\begin{split}
+\text {n samples:} & \ (X^{(i)}, Y^{(i)})\\
+\text {Predictors:} & \ X^{(i)} \in \mathbb R^p\\
+\text {Response:} & \ Y^{(i)} \\
+\text {Traditional model:} & \ Y^{(i)} = f(X^{(i)}; \theta)\\
+\text {Personalized model:} & \ Y^{(i)} = f(X^{(i)}; \theta^{(i)})
+\end{split}
+$$
+
+- Multiple simple models for each individual are estimated jointly with a single objective function
+- Without additional constraints, this model is overparametrized
+- Definitely over-fitted, but still fixable
+
+<!-- ##  -->
+
+<!-- Other methods either fail to estimate individual-level (i.e. sample-specific) effects, or require prior knowledge regarding the relation between samples (e.g. a network).  -->
+
+<!-- At the same time, as datasets continue to increase in size and complexity -->
+
+<!-- the possibility of inferring sample-specific phenomena by exploiting patterns in large datasets  -->
+
+<!-- important scientific problems such as precision medicine -->
+
+<!-- Personalized modeling seeks to estimate a large collection of simple models in which each model is tailored—or “personalized”—to a single sample. This is in contrast to models that seek to estimate a single, complex model.  -->
+
+
+<!-- ## -->
+
+<!-- The flexibility of using different parameter values for different samples enables us to use a simple model class (e.g. logistic regression) to produce models which are simultaneously interpretable and predictive for each individual sample.  -->
+
+<!-- By treating each sample separately, it is also possible to capture heterogeneous effects within similar subgroups (an example of this will be discussed in Section 3.3). -->
+
+<!-- Finally, the parameters learned through our framework accurately capture underlying effect sizes, giving users confidence that sample-specific interpretations correspond to real phenomena (Fig 1).  -->
+
+<!-- Whereas previous work on personalized models either seeks only the population’s distribution of parameters [34] or requires prior knowledge of the sample relationships [11, 37, 38] -->
+
+<!-- We develop a novel framework which estimates sample-specific parameters by adaptively learning relationships from the data. -->
+
+# Learning sample-specific models
+
+$$
+Y^{(i)} = f(X^{(i)}, \theta^{(i)}) + w^{(i)} \ \ \ \ \ \ (1)
+$$
+
+The key is to choose a solution $\theta^{(i)}$ that simultaneously leads to good generalization and accurate inferences about the $i$-th sample. 
+
+- a low-rank latent representation of $\theta^{(i)}$
+- a novel regularization scheme.
+
+
+## Low-rank representation
+
+Ideas of dictionary learning: good-behaved personalized modeling has a sparse representation
+
+$$
+\begin{aligned}
+\text {Low rank:} & \ \Omega = [\theta^{(1)} | ... | \theta^{(n)}] \in \mathbb R^{p \times n}\\
+ & i.e.  \ \theta^{(i)}  = Q^T Z^{(i)}\\
+\text {Loadings:}  & \ Z^{(i)} \in \mathbb R^q;   Z \in \mathbb R^{q \times n}\\
+\text {Dictionary:}  & \  Q \in \mathbb R^{q\times p}\\
+\text {Low rank:} & \ \Omega = Q^T Z\\
+\end{aligned}
+$$
+
+### Special form of sparse dictionary learning aka sparse coding
+
+ - Sparse coding is a representation learning method which aims at finding a sparse representation of the input data
+ - In the form of a linear combination of basic elements as well as those basic elements themselves
+ - These elements are called atoms and they compose a dictionary.
+
+
+##
+
+The choice of $q$ is determined by the user’s desired latent dimensionality;
+
+for $q \ll p$, using only $\Theta (q(n+p))$ instead of $\Theta(np)$ of a full-rank solution can improve computational and statistical efficiency.
+
+With $\theta^{(i)} = Q^T Z^{(i)}$, lower rank formulation enables to use $L_2$ distance in $Z$ to restrict Euclidean distances between the $\theta^{(i)}$
+
+$$
+\|\theta^{(i)} - \theta^{(j)} \| \leq \sqrt p \|Z^{(i)} - Z^{(j)}\| \ \ \ \ \ \ (2)
+$$
+
+- Sparsity in $\theta$ can be realized by sparsity in $Z$, $Q$
+
+- The low-rank formulation constrains the number of personalized sparsity patterns, by changing the latent dimensionality $q$.
+
+
+
+## Distance-matching
+
+Regularize the parameters $\theta^{(i)}$ by requiring that similarity in $\theta$ corresponds to similarity in $U$, 
+
+- i.e. $\| \theta^{(i)} - \theta ^{(j)} \| \approx \rho (U^{(i)}, U^{(i)})$
+
+- The $U(i)$ represent exogenous variables that we do not wish to directly model.
+
+
+
+## Distance-matching regularization (DMR)
+
+Adapt a distance-matching regularization (DMR) scheme to penalize the squared difference in implied distances. 
+
+The covariate distances are modeled as a weighted sum. 
+
+$$
+\rho_{\phi} (u, v) = \sum^k_{l = 1} \phi_l d_l(u_l, v_l), \ \phi_l\geq 0  \ \ \ \ \ \ (3)
+$$
+
+\tiny
+
+Each $d_l (l = 1, ... , k)$ is a metric for a covariate;
+
+$\phi$ is a positive (non-negative) vector represents a linear transformation into latent distance function;
+
+
+## Distance Matching Regularized Loss
+
+Main idea: Distance between sample parameters should be similar to distance between sample covariates, as well as the distance between latent variable $U$
+
+In order for $\|\theta^{(i)} - \theta^{(j)}\| \approx \rho_{\phi}(U^{(i)}, U^{(j)})$, it is suffices to require 
+$\|Z^{(i)} - Z^{(j)}\| \approx \rho_{\phi}(U^{(i)}, U^{(j)})$
+
+Then we can define the **distance-matching regularizer**:
+
+$$
+D^{(i)}_{\gamma} (d_{\beta}, d_U) = \frac {\gamma} {2} \sum_{j \in B_r(i)} \bigg( \rho_\phi (U^{(i)}, U^{(j)}) - \|Z^{(i)}, Z^{(j)}\|_2\bigg)^2 \ \ \ \ \ \ \ \ (4)
+$$
+
+\tiny
+
+$B_r(i) = \{j : \|Z^{(i)} - Z^{(j)}\|^2 < r\}$
+  
+The hyperparameter $\gamma$ trades off sensitivity to prediction of the response variable against sensitivity to covariate structure
+
+For example for simple linear relationship both under $L_2$ norm
+
+$$
+D^{(i)}_{\gamma} (d_{\beta}, d_U) = \frac {\gamma} {2} \sum_{j \neq i} \bigg( d_\theta (\theta^{(i)}, \theta^{(j)}) - d_Z(Z^{(i)}, Z^{(j)})\bigg)^2 = \frac {\gamma} {2} \sum_{j \neq i} \bigg( \|\theta^{(i)}, \theta^{(j)}\|_2^2 - \|Z^{(i)}, Z^{(j)}\|_2^2 \bigg)^2
+$$
+
+## Personalized Regression
+
+Seeking a model for inference, not necessarily for accurate predictive models
+
+Seeking relatively simple personalized effects not universal effects
+
+covariate data as informative of each sample
+
+Here is the $\ell (x, y, \theta)$ is the loss function we want to minimize
+
+$$
+\mathcal L^{(i)} (Z, Q, \phi) =  \ell \big(X^{(i)}, Y^{(i)}, Q^TZ^{(i)}\big) + \psi_\lambda(Q^TZ^{(i)}) + D_\gamma^{(i)}(Z, \phi) \ \ \ \  (5)
+$$
+
+\tiny
+
+- where $\psi_\lambda$ is a regularization such as $L_1$ penalty
+
+- $D_\gamma^{(i)}$ is the distance-matching regularization defined in $Eq.(4)$
+
+
+##
+
+Where we learn $\Omega$ and $\phi$ by minimizing the following objective:
+
+$$
+\pmb {\mathcal L} (Z, Q, \phi) = \sum^n_{i=1} \mathcal L^{(i)}(Z, Q, \phi) + v \|\phi - 1\|^2_2 \ \ \ \ \ \ \ \ (6)
+$$
+
+
+\tiny
+
+- where $v \|\phi - 1\|^2_2$ regularize the distance function $\rho_\phi$ with strength set $v$
+  
+- again, $\Omega = Q^TZ$
+
+## Algorithm
+
+
+\begin{itemize}
+\item The objective function is optimized with sub-gradient descent.
+\item Initialize $\Sigma$ by setting $\theta^{(i)}$~$N(\hat\theta, \varepsilon I)$ for population model such as lasso and elastic net.
+\item Initialize $Z$ and $Q$ by PCA factorization.
+\item Each personalized estimator is endowed with a personalized learning rate $\alpha_t^{(i)} = \alpha_t / ||\hat \theta_t^{(i)} - \hat \theta^{(pop)}||_{\infty}$.
+\item  This learning rate scales the global learning rate $\alpha_t$ according to how far the estimator has traveled.
+\item This scheme ensures that the personalized coefficients' center of mass stays close to the initial $\hat \theta^{(pop)}$ despite unconstrained $\theta^{(i)}$.
+\end{itemize}
+
+## Algorithm
+
+```{r echo=FALSE, out.width='90%', fig.align='center'}
+knitr::include_graphics(c("presentation6.png"))
+```
+
+## Prediction
+
+- Given a test point $(X, U)$, averaging the model parameters of the $k_n$ nearest training points based on distance $\rho_\phi$
+
+- Increasing $k_n$ drives the test models toward the population model to control overfitting
+
+- Intentionally avoided using $X$ to select $\theta$ so that interpretation of $\theta$ is not confounded by $X$
+
+$$
+\theta = \frac 1 {k_n} \sum^{k_n}_{j=1} \theta^{(\eta(\rho_\phi, U))[j]}; \ \eta(\rho_\phi, U) = {{argsort} _{a\leq i \leq n}} \rho_\phi (U, U^{(i)}) \ \ \ \ \ \ \ \ (7.a)
+$$
+
+
+## Results
+
+\begin{itemize}
+\item Performance of personalized regression will be tested through simulation study.
+\item Fix $X \in \mathbb{R}^{N \times P}$, generate sample-specific $\beta^{(i)}$ ~ Unif (0,1), and $Y^{(i))} \in (0,1)$.
+\item Covariates $U^{(i)}$ are generated by projecting $\beta^{(j)}$ into $K < P$ dimension with mult-dimensional scaling.
+\item covariates that are related to the personalized regression coefficients in a highly nonlinear, nonparametric manner.
+\item Set $K = 10, K = 3$.
+\end{itemize}
+
+```{r echo=FALSE, out.width='50%', fig.align='center'}
+knitr::include_graphics("presentation11.png")
+```
+
+## Simulation
+
+
+
+```{r echo=FALSE, out.width='70%', fig.align='center'}
+knitr::include_graphics("presentation10.jpg")
+```
+
+
+
+## Sample-specific pan-cancer analysis
+
+They also use gene expression (RNA-Seq) quantification data from The Cancer Genome Atlas (TCGA).
+
+- This dataset compiles data from 37 projects spanning 36 disease types in 28 primary sites. 
+
+- After pruning for missing values, this dataset contains 9663 profiles for 8944 case and 719 matched control samples
+
+- This resulting in $P = 4123$ features when an intercept term is added. 
+
+- They divide this set into 75% training data and 25% testing.
+
+## PR has good variable selections
+
+```{r echo=FALSE, out.width='60%', fig.align='center'}
+knitr::include_graphics(c("presentation9.png"))
+```
+
+## PR has good variable selections
+
+```{r echo=FALSE, out.width='40%', fig.align='center'}
+knitr::include_graphics(c("presentation12.png"))
+```
+
+## Here is the result of RNA-seq data
+
+```{r echo=FALSE, out.width='60%', fig.align='center'}
+knitr::include_graphics(c("presentation8.png"))
+```
+
+
+## Cancer is a highly personalized problem
+
+```{r echo=FALSE, out.width='60%', fig.align='center'}
+knitr::include_graphics(c("presentation3.png"))
+```
+
+
+## The clusters have biological and clinical meanings
+
+```{r echo=FALSE, out.width='45%', fig.align='center'}
+knitr::include_graphics(c("presentation5.png"))
+```
+
+## Discussion
+
+- The Generalization Problem? Sensitive to outliers?
+- Is it really interpreting as its claimed to be? Confounding and Collinearity?
+- Tuning the parameters $\lambda, \gamma. v, c, \alpha$?
+- Why PCA? How Kernel PCA?
+?
+
